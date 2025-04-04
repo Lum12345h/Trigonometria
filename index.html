@@ -5,23 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Práctica de Trigonometría</title>
 
-    <!-- KaTeX CSS -->
-    <link
-      rel="stylesheet"
-      href="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.css"
-    />
-
-    <!-- KaTeX JS Core -->
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/katex.min.js"
-    ></script>
-
-    <!-- KaTeX auto-render extension -->
-    <script
-      defer
-      src="https://cdn.jsdelivr.net/npm/katex@0.16.10/dist/contrib/auto-render.min.js"
-    ></script>
+    <!-- KaTeX CSS and JS Removed -->
 
     <style>
       /* --- Global Styles & Reset --- */
@@ -129,19 +113,27 @@
         line-height: 1.8;
         text-align: center;
         color: #212529; /* Darker text */
+        /* Allow wrapping */
+        white-space: normal;
+        word-wrap: break-word;
+      }
+      #problem-display code,
+      #feedback code {
+        font-family: Consolas, Monaco, "Andale Mono", "Ubuntu Mono", monospace;
+        background-color: #e9ecef;
+        padding: 2px 5px;
+        border-radius: 4px;
+        font-size: 0.95em;
       }
 
-      /* Make KaTeX display block elements vertically */
-      #problem-display .katex-display {
-        display: block;
-        margin: 1em 0;
-      }
-      #feedback .katex-display {
-        display: block;
-        margin: 0.8em 0;
-      }
       #feedback .explanation-step {
-        margin-bottom: 0.5em;
+        margin-bottom: 0.8em;
+        padding-left: 10px;
+        border-left: 3px solid #007bff; /* Add a visual cue for steps */
+      }
+      #feedback .explanation-step ul {
+        margin-left: 20px;
+        list-style: disc;
       }
 
       /* --- Answer & Procedure --- */
@@ -277,7 +269,12 @@
         font-weight: 600;
       }
       #feedback p {
+        /* Default paragraph margin in feedback */
         margin-bottom: 10px;
+      }
+      #feedback div p {
+        /* Less margin for paragraphs inside divs */
+        margin-bottom: 5px;
       }
       #feedback p:last-child {
         margin-bottom: 0;
@@ -291,11 +288,6 @@
         border-top: 1px solid #dee2e6;
         color: #6c757d; /* Grey */
         font-size: 0.9rem;
-      }
-
-      /* --- KaTeX Specific Adjustments --- */
-      .katex {
-        font-size: 1.1em; /* Slightly larger math font */
       }
 
       /* --- Responsiveness --- */
@@ -379,7 +371,6 @@
       <div class="main-content">
         <h2>Selecciona un Tema</h2>
         <div class="topic-selector" id="topic-selector">
-          <!-- Corrected Topic Name -->
           <button class="topic-button" data-topic="fundamental">
             Funciones Fundamentales
           </button>
@@ -451,132 +442,83 @@
       let currentProblem = null;
       let previousProblem = null;
       let previousUserAnswer = "";
-      let previousProcedure = ""; // Store previous procedure too
+      let previousProcedure = "";
       let selectedTopic = null;
-      const TOLERANCE = 0.015; // Tolerance for floating point comparisons (adjust as needed)
-      const ANGLE_TOLERANCE = 0.1; // Tolerance for angle comparisons in degrees
-      const ANGLE_MINUTE_TOLERANCE_DEG = 0.5 / 60; // Tolerance for angle comparison in deg/min (e.g., 0.5 minutes)
+      const TOLERANCE = 0.015;
+      const ANGLE_TOLERANCE = 0.1;
+      const ANGLE_MINUTE_TOLERANCE_DEG = 0.5 / 60;
 
       // --- Utility Functions ---
       function degToRad(degrees) {
         return degrees * (Math.PI / 180);
       }
-
       function radToDeg(radians) {
         return radians * (180 / Math.PI);
       }
-
-      // Format number to specified decimal places
       function formatNumber(num, dp = 2) {
         if (typeof num !== "number" || isNaN(num)) return "";
-        // Avoid negative zero
         const rounded = parseFloat(num.toFixed(dp));
         return rounded === 0
           ? "0" + (dp > 0 ? "." + "0".repeat(dp) : "")
           : rounded.toString();
-        //return num.toFixed(dp);
       }
-
-      // Format angle (degrees decimal) to degrees and minutes (robust)
       function formatAngleDegMin(degrees) {
         if (typeof degrees !== "number" || isNaN(degrees)) return "";
         if (degrees < 0 || degrees >= 360)
-          console.warn("Formatting angle outside typical range:", degrees); // Warning for unusual angles
-
+          console.warn("Formatting angle outside typical range:", degrees);
         const totalMinutes = degrees * 60;
-        const roundedTotalMinutes = Math.round(totalMinutes); // Round total minutes
-
+        const roundedTotalMinutes = Math.round(totalMinutes);
         const deg = Math.floor(roundedTotalMinutes / 60);
         const minutes = roundedTotalMinutes % 60;
-
         return `${deg}° ${minutes}'`;
       }
-
-      // Get a random integer between min and max (inclusive)
       function getRandomInt(min, max) {
         min = Math.ceil(min);
         max = Math.floor(max);
         return Math.floor(Math.random() * (max - min + 1)) + min;
       }
-
-      // Get a random float between min and max
       function getRandomFloat(min, max, dp = 1) {
         const value = Math.random() * (max - min) + min;
         return parseFloat(value.toFixed(dp));
       }
 
-      // Render Math using KaTeX - Added check for function existence
-      function renderMath(element) {
-        // Check if renderMathInElement is available (scripts loaded)
-        if (typeof renderMathInElement === "function") {
-          try {
-            renderMathInElement(element, {
-              delimiters: [
-                { left: "$$", right: "$$", display: true },
-                { left: "$", right: "$", display: false },
-                { left: "\\(", right: "\\)", display: false },
-                { left: "\\[", right: "\\]", display: true },
-              ],
-              throwOnError: false, // Avoid breaking the page on KaTeX errors
-            });
-          } catch (error) {
-            console.error("KaTeX rendering error:", error);
-            // Display error message inside the element if rendering fails
-            element.innerHTML +=
-              "<p style='color: red; font-size: small;'>Error al renderizar la fórmula matemática.</p>";
-          }
-        } else {
-          // Function not loaded yet or failed to load - log warning
-          console.warn(
-            "KaTeX auto-render function (renderMathInElement) not loaded."
-          );
-        }
-      }
+      // REMOVED renderMath function - KaTeX is not used
 
-      // Clear feedback and input
       function clearFeedbackAndInput() {
         feedbackDiv.innerHTML = "";
         feedbackDiv.className = "";
         answerInput.value = "";
-        procedureArea.value = ""; // Clear procedure area too
+        procedureArea.value = "";
       }
-
-      // Enable/Disable buttons
       function setButtonsState(problemGenerated) {
         checkButton.disabled = !problemGenerated;
         newProblemButton.disabled = !selectedTopic;
-        prevProblemButton.disabled = !previousProblem; // Enable only if there's a previous problem state
+        prevProblemButton.disabled = !previousProblem;
       }
 
       // --- Problem Generation Logic ---
-
       function generateProblem() {
-        // Save current state to previous before generating new
         if (currentProblem) {
-          // Make sure not to save null/initial state as previousProblem
           if (
             currentProblem.questionText &&
             currentProblem.questionText !== "Selecciona un tema para empezar."
           ) {
-            previousProblem = { ...currentProblem }; // Shallow copy is fine here
+            previousProblem = { ...currentProblem };
             previousUserAnswer = answerInput.value;
-            previousProcedure = procedureArea.value; // Save procedure too
+            previousProcedure = procedureArea.value;
           }
         }
-
         clearFeedbackAndInput();
         if (!selectedTopic) {
           problemDisplay.textContent = "Por favor, selecciona un tema primero.";
           setButtonsState(false);
-          prevProblemButton.disabled = true; // Ensure prev is disabled if no topic selected
+          prevProblemButton.disabled = true;
           return;
         }
-
         let problemData = null;
         try {
-          // Add try-catch around generation in case of errors
           switch (selectedTopic) {
-            case "fundamental": // Changed from 'basic'
+            case "fundamental":
               problemData = generateFundamentalTrigProblem();
               break;
             case "reciprocal":
@@ -596,34 +538,30 @@
               setButtonsState(false);
               return;
           }
-
           if (!problemData || !problemData.questionText) {
-            // Check if problem data is valid
             throw new Error(
-              "Problem generation failed or returned invalid data for topic: " +
-                selectedTopic
+              "Problem generation failed for topic: " + selectedTopic
             );
           }
-
           currentProblem = problemData;
-          problemDisplay.innerHTML = currentProblem.questionText; // Use innerHTML for KaTeX
-          renderMath(problemDisplay); // Render math in the new problem
-          setButtonsState(true); // Enable Check/New buttons
+          problemDisplay.innerHTML = currentProblem.questionText; // Use innerHTML for potential HTML in question
+          // NO renderMath call here
+          setButtonsState(true);
         } catch (error) {
           console.error("Error generating problem:", error);
           problemDisplay.innerHTML =
-            '<p style="color:red;">Error al generar el problema. Por favor, intenta seleccionar el tema de nuevo o recarga la página.</p>';
-          currentProblem = null; // Reset current problem on error
-          setButtonsState(false); // Disable check button
-          newProblemButton.disabled = !!selectedTopic; // Keep New Problem enabled if topic selected
-          prevProblemButton.disabled = !previousProblem; // Keep prev state
+            '<p style="color:red;">Error al generar el problema. Intenta seleccionar el tema de nuevo.</p>';
+          currentProblem = null;
+          setButtonsState(false);
+          newProblemButton.disabled = !!selectedTopic;
+          prevProblemButton.disabled = !previousProblem;
         }
       }
 
-      // --- Specific Problem Generation Functions ---
+      // --- Specific Problem Generation Functions (LaTeX replaced with Unicode/HTML) ---
 
       // =============================================================
-      // NEW: Funciones Trigonométricas Fundamentales (SOH CAH TOA)
+      // UPDATED: Funciones Trigonométricas Fundamentales (SOH CAH TOA)
       // =============================================================
       function generateFundamentalTrigProblem() {
         const problemType = getRandomInt(1, 2); // 1: Find side, 2: Find angle
@@ -633,46 +571,27 @@
         let answerFormat = "";
 
         const units = ["cm", "m"][getRandomInt(0, 1)];
-        const angleSymbol = "\\theta"; // Or could use A, B, etc.
+        const angleSymbol = "θ"; // Unicode theta
 
         if (problemType === 1) {
-          // Find side (like Task 5.1 Q3)
-          answerFormat = "decimal"; // Sides are usually decimals
+          // Find side
+          answerFormat = "decimal";
           const angle = getRandomInt(20, 70);
           const angleRad = degToRad(angle);
-
-          // Define sides relative to the angle
           const sides = ["opposite", "adjacent", "hypotenuse"];
           const knownSideType = sides[getRandomInt(0, 2)];
           let unknownSideType = sides[getRandomInt(0, 2)];
           while (unknownSideType === knownSideType) {
             unknownSideType = sides[getRandomInt(0, 2)];
           }
-
-          // Assign value to known side (ensure hypotenuse is largest if involved)
           let knownValue;
           if (knownSideType === "hypotenuse") {
             knownValue = getRandomFloat(10, 50, 1);
           } else {
-            // If hypotenuse is unknown, known side can be smaller
             if (unknownSideType === "hypotenuse") {
               knownValue = getRandomFloat(5, 30, 1);
             } else {
-              // opp/adj known, hyp not involved or known
               knownValue = getRandomFloat(5, 40, 1);
-              // If hypotenuse is known, ensure opp/adj < hyp
-              if (
-                knownSideType !== "hypotenuse" &&
-                unknownSideType === "hypotenuse"
-              ) {
-                // This case shouldn't happen based on selection, but as fallback:
-                // knownValue = Math.min(knownValue, hypotenuseValue * 0.9);
-              } else if (
-                knownSideType === "hypotenuse" &&
-                unknownSideType !== "hypotenuse"
-              ) {
-                //This case is handled when hyp is knownValue
-              }
             }
           }
 
@@ -680,14 +599,10 @@
           let calculation;
           let explanationParts = [];
 
-          explanationParts.push(`<div class="explanation-step">Identificamos los lados respecto al ángulo ${angleSymbol}=${angle}°:
-                     <ul>
-                        <li>Lado Conocido: ${knownSideType} = ${knownValue} ${units}</li>
-                        <li>Lado a Calcular: ${unknownSideType} (llamémoslo $x$)</li>
-                     </ul>
-                 </div>`);
+          explanationParts.push(
+            `<div class="explanation-step"><p><strong>Identificación:</strong></p><ul><li>Ángulo: ${angleSymbol} = ${angle}°</li><li>Lado Conocido: ${knownSideType} = ${knownValue} ${units}</li><li>Lado a Calcular: ${unknownSideType} (llamémoslo <em>x</em>)</li></ul></div>`
+          );
 
-          // Determine function and calculate
           if (
             (knownSideType === "opposite" &&
               unknownSideType === "hypotenuse") ||
@@ -695,31 +610,29 @@
           ) {
             trigFunc = "sin";
             explanationParts.push(
-              `<div class="explanation-step">La función que relaciona opuesto y hipotenusa es Seno (SOH): $$\\sin(${angleSymbol}) = \\frac{\\text{opuesto}}{\\text{hipotenusa}}$$</div>`
+              `<div class="explanation-step"><p><strong>Función (SOH):</strong> <code>sin(${angleSymbol}) = opuesto / hipotenusa</code></p></div>`
             );
             if (knownSideType === "opposite") {
-              // Known Opp, Find Hyp (x)
               calculation = knownValue / Math.sin(angleRad);
               explanationParts.push(
-                `<div class="explanation-step">Sustituimos: $$\\sin(${angle}^\\circ) = \\frac{${knownValue}}{x}$$</div>`
+                `<div class="explanation-step"><p><strong>Sustitución:</strong> <code>sin(${angle}°) = ${knownValue} / x</code></p></div>`
               );
               explanationParts.push(
-                `<div class="explanation-step">Despejamos $x$: $$x = \\frac{${knownValue}}{\\sin(${angle}^\\circ)} \\approx \\frac{${knownValue}}{${formatNumber(
+                `<div class="explanation-step"><p><strong>Despeje:</strong> <code>x = ${knownValue} / sin(${angle}°)</code><br><code>x ≈ ${knownValue} / ${formatNumber(
                   Math.sin(angleRad),
                   4
-                )}}$$</div>`
+                )}</code></p></div>`
               );
             } else {
-              // Known Hyp, Find Opp (x)
               calculation = knownValue * Math.sin(angleRad);
               explanationParts.push(
-                `<div class="explanation-step">Sustituimos: $$\\sin(${angle}^\\circ) = \\frac{x}{${knownValue}}$$</div>`
+                `<div class="explanation-step"><p><strong>Sustitución:</strong> <code>sin(${angle}°) = x / ${knownValue}</code></p></div>`
               );
               explanationParts.push(
-                `<div class="explanation-step">Despejamos $x$: $$x = ${knownValue} \\times \\sin(${angle}^\\circ) \\approx ${knownValue} \\times ${formatNumber(
+                `<div class="explanation-step"><p><strong>Despeje:</strong> <code>x = ${knownValue} × sin(${angle}°)</code><br><code>x ≈ ${knownValue} × ${formatNumber(
                   Math.sin(angleRad),
                   4
-                )}$$</div>`
+                )}</code></p></div>`
               );
             }
           } else if (
@@ -729,92 +642,82 @@
           ) {
             trigFunc = "cos";
             explanationParts.push(
-              `<div class="explanation-step">La función que relaciona adyacente y hipotenusa es Coseno (CAH): $$\\cos(${angleSymbol}) = \\frac{\\text{adyacente}}{\\text{hipotenusa}}$$</div>`
+              `<div class="explanation-step"><p><strong>Función (CAH):</strong> <code>cos(${angleSymbol}) = adyacente / hipotenusa</code></p></div>`
             );
             if (knownSideType === "adjacent") {
-              // Known Adj, Find Hyp (x)
               calculation = knownValue / Math.cos(angleRad);
               explanationParts.push(
-                `<div class="explanation-step">Sustituimos: $$\\cos(${angle}^\\circ) = \\frac{${knownValue}}{x}$$</div>`
+                `<div class="explanation-step"><p><strong>Sustitución:</strong> <code>cos(${angle}°) = ${knownValue} / x</code></p></div>`
               );
               explanationParts.push(
-                `<div class="explanation-step">Despejamos $x$: $$x = \\frac{${knownValue}}{\\cos(${angle}^\\circ)} \\approx \\frac{${knownValue}}{${formatNumber(
+                `<div class="explanation-step"><p><strong>Despeje:</strong> <code>x = ${knownValue} / cos(${angle}°)</code><br><code>x ≈ ${knownValue} / ${formatNumber(
                   Math.cos(angleRad),
                   4
-                )}}$$</div>`
+                )}</code></p></div>`
               );
             } else {
-              // Known Hyp, Find Adj (x)
               calculation = knownValue * Math.cos(angleRad);
               explanationParts.push(
-                `<div class="explanation-step">Sustituimos: $$\\cos(${angle}^\\circ) = \\frac{x}{${knownValue}}$$</div>`
+                `<div class="explanation-step"><p><strong>Sustitución:</strong> <code>cos(${angle}°) = x / ${knownValue}</code></p></div>`
               );
               explanationParts.push(
-                `<div class="explanation-step">Despejamos $x$: $$x = ${knownValue} \\times \\cos(${angle}^\\circ) \\approx ${knownValue} \\times ${formatNumber(
+                `<div class="explanation-step"><p><strong>Despeje:</strong> <code>x = ${knownValue} × cos(${angle}°)</code><br><code>x ≈ ${knownValue} × ${formatNumber(
                   Math.cos(angleRad),
                   4
-                )}$$</div>`
+                )}</code></p></div>`
               );
             }
           } else {
-            // Must be Opposite and Adjacent
+            // Opposite and Adjacent
             trigFunc = "tan";
             explanationParts.push(
-              `<div class="explanation-step">La función que relaciona opuesto y adyacente es Tangente (TOA): $$\\tan(${angleSymbol}) = \\frac{\\text{opuesto}}{\\text{adyacente}}$$</div>`
+              `<div class="explanation-step"><p><strong>Función (TOA):</strong> <code>tan(${angleSymbol}) = opuesto / adyacente</code></p></div>`
             );
             if (knownSideType === "opposite") {
-              // Known Opp, Find Adj (x)
               calculation = knownValue / Math.tan(angleRad);
               explanationParts.push(
-                `<div class="explanation-step">Sustituimos: $$\\tan(${angle}^\\circ) = \\frac{${knownValue}}{x}$$</div>`
+                `<div class="explanation-step"><p><strong>Sustitución:</strong> <code>tan(${angle}°) = ${knownValue} / x</code></p></div>`
               );
               explanationParts.push(
-                `<div class="explanation-step">Despejamos $x$: $$x = \\frac{${knownValue}}{\\tan(${angle}^\\circ)} \\approx \\frac{${knownValue}}{${formatNumber(
+                `<div class="explanation-step"><p><strong>Despeje:</strong> <code>x = ${knownValue} / tan(${angle}°)</code><br><code>x ≈ ${knownValue} / ${formatNumber(
                   Math.tan(angleRad),
                   4
-                )}}$$</div>`
+                )}</code></p></div>`
               );
             } else {
-              // Known Adj, Find Opp (x)
               calculation = knownValue * Math.tan(angleRad);
               explanationParts.push(
-                `<div class="explanation-step">Sustituimos: $$\\tan(${angle}^\\circ) = \\frac{x}{${knownValue}}$$</div>`
+                `<div class="explanation-step"><p><strong>Sustitución:</strong> <code>tan(${angle}°) = x / ${knownValue}</code></p></div>`
               );
               explanationParts.push(
-                `<div class="explanation-step">Despejamos $x$: $$x = ${knownValue} \\times \\tan(${angle}^\\circ) \\approx ${knownValue} \\times ${formatNumber(
+                `<div class="explanation-step"><p><strong>Despeje:</strong> <code>x = ${knownValue} × tan(${angle}°)</code><br><code>x ≈ ${knownValue} × ${formatNumber(
                   Math.tan(angleRad),
                   4
-                )}$$</div>`
+                )}</code></p></div>`
               );
             }
           }
 
-          correctAnswer = formatNumber(calculation, 2); // Format side length to 2 decimal places
-          questionText = `En un triángulo rectángulo, un ángulo agudo mide ${angleSymbol} = ${angle}° y el lado ${knownSideType} mide ${knownValue} ${units}. Calcula la longitud del lado ${unknownSideType}. (Redondea a 2 decimales)`;
+          correctAnswer = formatNumber(calculation, 2);
+          questionText = `En un triángulo rectángulo, un ángulo agudo mide ${angleSymbol} = ${angle}° y el lado <strong>${knownSideType}</strong> mide ${knownValue} ${units}. Calcula la longitud del lado <strong>${unknownSideType}</strong>. (Redondea a 2 decimales)`;
           explanationParts.push(
-            `<div class="explanation-step">Calculando el valor: $$x \\approx ${correctAnswer}$$</div>`
+            `<div class="explanation-step"><p><strong>Resultado:</strong> <code>x ≈ ${correctAnswer}</code> ${units}</p></div>`
           );
           explanation = explanationParts.join("");
         } else {
-          // Find angle (like Task 5.1 Q5)
-          answerFormat = "angle_deg_min"; // Angles in degrees and minutes
-
-          // Define known sides
+          // Find angle
+          answerFormat = "angle_deg_min";
           const knownSidePairs = [
             ["opposite", "hypotenuse"],
             ["adjacent", "hypotenuse"],
             ["opposite", "adjacent"],
           ];
           const [side1Type, side2Type] = knownSidePairs[getRandomInt(0, 2)];
-
-          // Assign values (ensure validity)
           let side1Value, side2Value;
           if (side2Type === "hypotenuse") {
-            // side1 is opp or adj
-            side2Value = getRandomFloat(10, 50, 1); // Hypotenuse
-            side1Value = getRandomFloat(5, side2Value * 0.9, 1); // Opp/Adj must be smaller
+            side2Value = getRandomFloat(10, 50, 1);
+            side1Value = getRandomFloat(5, side2Value * 0.9, 1);
           } else {
-            // side1 is opp, side2 is adj
             side1Value = getRandomFloat(5, 40, 1);
             side2Value = getRandomFloat(5, 40, 1);
           }
@@ -824,32 +727,29 @@
           let inverseFunc = "";
           let explanationParts = [];
 
-          explanationParts.push(`<div class="explanation-step">Identificamos los lados conocidos respecto al ángulo ${angleSymbol} a calcular:
-                     <ul>
-                        <li>Lado ${side1Type} = ${side1Value} ${units}</li>
-                        <li>Lado ${side2Type} = ${side2Value} ${units}</li>
-                     </ul>
-                 </div>`);
+          explanationParts.push(
+            `<div class="explanation-step"><p><strong>Identificación:</strong></p><ul><li>Lado ${side1Type} = ${side1Value} ${units}</li><li>Lado ${side2Type} = ${side2Value} ${units}</li><li>Ángulo a Calcular: ${angleSymbol}</li></ul></div>`
+          );
 
           if (side1Type === "opposite" && side2Type === "hypotenuse") {
             trigFunc = "sin";
             inverseFunc = "arcsin";
             ratio = side1Value / side2Value;
             explanationParts.push(
-              `<div class="explanation-step">Usamos la función Seno (SOH): $$\\sin(${angleSymbol}) = \\frac{\\text{opuesto}}{\\text{hipotenusa}} = \\frac{${side1Value}}{${side2Value}} \\approx ${formatNumber(
+              `<div class="explanation-step"><p><strong>Función (SOH):</strong> <code>sin(${angleSymbol}) = opuesto / hipotenusa</code><br><code>sin(${angleSymbol}) = ${side1Value} / ${side2Value} ≈ ${formatNumber(
                 ratio,
                 4
-              )}$$</div>`
+              )}</code></p></div>`
             );
           } else if (side1Type === "adjacent" && side2Type === "hypotenuse") {
             trigFunc = "cos";
             inverseFunc = "arccos";
             ratio = side1Value / side2Value;
             explanationParts.push(
-              `<div class="explanation-step">Usamos la función Coseno (CAH): $$\\cos(${angleSymbol}) = \\frac{\\text{adyacente}}{\\text{hipotenusa}} = \\frac{${side1Value}}{${side2Value}} \\approx ${formatNumber(
+              `<div class="explanation-step"><p><strong>Función (CAH):</strong> <code>cos(${angleSymbol}) = adyacente / hipotenusa</code><br><code>cos(${angleSymbol}) = ${side1Value} / ${side2Value} ≈ ${formatNumber(
                 ratio,
                 4
-              )}$$</div>`
+              )}</code></p></div>`
             );
           } else {
             // opposite and adjacent
@@ -857,39 +757,36 @@
             inverseFunc = "arctan";
             ratio = side1Value / side2Value;
             explanationParts.push(
-              `<div class="explanation-step">Usamos la función Tangente (TOA): $$\\tan(${angleSymbol}) = \\frac{\\text{opuesto}}{\\text{adyacente}} = \\frac{${side1Value}}{${side2Value}} \\approx ${formatNumber(
+              `<div class="explanation-step"><p><strong>Función (TOA):</strong> <code>tan(${angleSymbol}) = opuesto / adyacente</code><br><code>tan(${angleSymbol}) = ${side1Value} / ${side2Value} ≈ ${formatNumber(
                 ratio,
                 4
-              )}$$</div>`
+              )}</code></p></div>`
             );
           }
 
-          // Clamp ratio to avoid Math errors due to float inaccuracy, esp. for sin/cos
           ratio = Math.max(-1, Math.min(1, ratio));
-
           let angleRad;
           if (trigFunc === "sin") angleRad = Math.asin(ratio);
           else if (trigFunc === "cos") angleRad = Math.acos(ratio);
           else angleRad = Math.atan(ratio);
-
           const angleDeg = radToDeg(angleRad);
           correctAnswer = formatAngleDegMin(angleDeg);
 
-          questionText = `En un triángulo rectángulo, el lado ${side1Type} mide ${side1Value} ${units} y el lado ${side2Type} mide ${side2Value} ${units}. Calcula la medida del ángulo agudo ${angleSymbol} definido por estos lados (si aplica) o el ángulo opuesto al lado ${side1Type} (si ${side2Type} es hipotenusa). (Respuesta en grados y minutos)`;
+          questionText = `En un triángulo rectángulo, el lado <strong>${side1Type}</strong> mide ${side1Value} ${units} y el lado <strong>${side2Type}</strong> mide ${side2Value} ${units}. Calcula la medida del ángulo agudo ${angleSymbol} correspondiente. (Respuesta en grados y minutos)`;
           explanationParts.push(
-            `<div class="explanation-step">Para encontrar el ángulo, usamos la función inversa ${inverseFunc}: $${angleSymbol} = ${inverseFunc}\\left( ${formatNumber(
+            `<div class="explanation-step"><p><strong>Función Inversa:</strong> <code>${angleSymbol} = ${inverseFunc}(${formatNumber(
               ratio,
               4
-            )} \\right)$$</div>`
+            )})</code></p></div>`
           );
           explanationParts.push(
-            `<div class="explanation-step">Calculando el valor: $${angleSymbol} \\approx ${formatNumber(
+            `<div class="explanation-step"><p><strong>Cálculo:</strong> <code>${angleSymbol} ≈ ${formatNumber(
               angleDeg,
               2
-            )}^\\circ$</div>`
+            )}°</code></p></div>`
           );
           explanationParts.push(
-            `<div class="explanation-step">Convirtiendo a grados y minutos: $${angleSymbol} \\approx ${correctAnswer}$</div>`
+            `<div class="explanation-step"><p><strong>Formato Grados/Minutos:</strong> <code>${angleSymbol} ≈ ${correctAnswer}</code></p></div>`
           );
           explanation = explanationParts.join("");
         }
@@ -897,14 +794,13 @@
         return {
           questionText,
           correctAnswer,
-          type: "fundamental", // Match the data-topic
+          type: "fundamental",
           explanation,
           answerFormat,
         };
       }
 
-      // [ ... Keep the generateReciprocalProblem, generateComplementaryProblem, generateSineLawProblem, generateCosineLawProblem functions exactly as they were ... ]
-      // 2. Reciprocal Functions
+      // 2. Reciprocal Functions (Updated for Unicode/HTML)
       function generateReciprocalProblem() {
         const type = getRandomInt(1, 4);
         let questionText = "";
@@ -913,94 +809,97 @@
         const angle = getRandomInt(20, 70);
         const angleRad = degToRad(angle);
         let value, calcValue;
+        const angleSymbol = "θ";
 
         switch (type) {
           case 1: // Calculate csc
             value = Math.sin(angleRad);
-            // Ensure value is not too close to zero to avoid huge csc
             if (Math.abs(value) < 0.1) value = 0.1 * Math.sign(value);
             calcValue = 1 / value;
             correctAnswer = formatNumber(calcValue);
-            questionText = `Calcula $\\csc(${angle}^\\circ)$. (Redondea a 2 decimales)`;
-            explanation = `Usamos la definición $\\csc(\\theta) = \\frac{1}{\\sin(\\theta)}$.
-                                    $$\\csc(${angle}^\\circ) = \\frac{1}{\\sin(${angle}^\\circ)} \\approx \\frac{1}{${formatNumber(
+            questionText = `Calcula <code>csc(${angle}°)</code>. (Redondea a 2 decimales)`;
+            explanation = `<p>Usamos la definición <code>csc(${angleSymbol}) = 1 / sin(${angleSymbol})</code>.</p>
+                                    <p><code>csc(${angle}°) = 1 / sin(${angle}°)</code></p>
+                                    <p><code>csc(${angle}°) ≈ 1 / ${formatNumber(
               value,
               4
-            )}} \\approx ${correctAnswer}$$`;
+            )} ≈ ${correctAnswer}</code></p>`;
             break;
           case 2: // Calculate sec
             value = Math.cos(angleRad);
             if (Math.abs(value) < 0.1) value = 0.1 * Math.sign(value);
             calcValue = 1 / value;
             correctAnswer = formatNumber(calcValue);
-            questionText = `Calcula $\\sec(${angle}^\\circ)$. (Redondea a 2 decimales)`;
-            explanation = `Usamos la definición $\\sec(\\theta) = \\frac{1}{\\cos(\\theta)}$.
-                                    $$\\sec(${angle}^\\circ) = \\frac{1}{\\cos(${angle}^\\circ)} \\approx \\frac{1}{${formatNumber(
+            questionText = `Calcula <code>sec(${angle}°)</code>. (Redondea a 2 decimales)`;
+            explanation = `<p>Usamos la definición <code>sec(${angleSymbol}) = 1 / cos(${angleSymbol})</code>.</p>
+                                    <p><code>sec(${angle}°) = 1 / cos(${angle}°)</code></p>
+                                    <p><code>sec(${angle}°) ≈ 1 / ${formatNumber(
               value,
               4
-            )}} \\approx ${correctAnswer}$$`;
+            )} ≈ ${correctAnswer}</code></p>`;
             break;
           case 3: // Calculate cot
             value = Math.tan(angleRad);
-            if (Math.abs(value) < 0.01) value = 0.01 * Math.sign(value); // Avoid near-zero tan for cot
+            if (Math.abs(value) < 0.01) value = 0.01 * Math.sign(value);
             calcValue = 1 / value;
             correctAnswer = formatNumber(calcValue);
-            questionText = `Calcula $\\cot(${angle}^\\circ)$. (Redondea a 2 decimales)`;
-            explanation = `Usamos la definición $\\cot(\\theta) = \\frac{1}{\\tan(\\theta)}$.
-                                    $$\\cot(${angle}^\\circ) = \\frac{1}{\\tan(${angle}^\\circ)} \\approx \\frac{1}{${formatNumber(
+            questionText = `Calcula <code>cot(${angle}°)</code>. (Redondea a 2 decimales)`;
+            explanation = `<p>Usamos la definición <code>cot(${angleSymbol}) = 1 / tan(${angleSymbol})</code>.</p>
+                                    <p><code>cot(${angle}°) = 1 / tan(${angle}°)</code></p>
+                                    <p><code>cot(${angle}°) ≈ 1 / ${formatNumber(
               value,
               4
-            )}} \\approx ${correctAnswer}$$`;
+            )} ≈ ${correctAnswer}</code></p>`;
             break;
-          case 4: // Solve simple reciprocal equation, e.g., sec(theta) = k
-            const k = getRandomFloat(1.1, 3.0); // sec and csc must be >= 1 or <= -1
+          case 4: // Solve simple reciprocal equation
+            const k = getRandomFloat(1.1, 3.0);
             const func = ["sec", "csc"][getRandomInt(0, 1)];
             let targetFunc, targetValRad, targetValDeg;
-
             if (func === "sec") {
               targetFunc = "cos";
               targetValRad = Math.acos(1 / k);
-              questionText = `Encuentra el ángulo agudo $\\theta$ si $\\sec(\\theta) = ${formatNumber(
+              questionText = `Encuentra el ángulo agudo ${angleSymbol} si <code>sec(${angleSymbol}) = ${formatNumber(
                 k
-              )}$. Da la respuesta en grados, redondeada a 1 decimal.`;
-              explanation = `Si $\\sec(\\theta) = ${formatNumber(
+              )}</code>. Da la respuesta en grados, redondeada a 1 decimal.`;
+              explanation = `<p>Si <code>sec(${angleSymbol}) = ${formatNumber(
                 k
-              )}$, entonces $\\cos(\\theta) = \\frac{1}{\\sec(\\theta)} = \\frac{1}{${formatNumber(
+              )}</code>, entonces <code>cos(${angleSymbol}) = 1 / sec(${angleSymbol}) = 1 / ${formatNumber(
                 k
-              )}} \\approx ${formatNumber(1 / k, 4)}$.
-                                         Para encontrar $\\theta$, usamos la función inversa del coseno:
-                                         $$\\theta = \\arccos\\left( \\frac{1}{${formatNumber(
-                                           k
-                                         )}} \\right) \\approx \\arccos(${formatNumber(
+              )} ≈ ${formatNumber(1 / k, 4)}</code>.</p>
+                                         <p>Usamos la función inversa:</p>
+                                         <p><code>${angleSymbol} = arccos(1 / ${formatNumber(
+                k
+              )})</code></p>
+                                         <p><code>${angleSymbol} ≈ arccos(${formatNumber(
                 1 / k,
                 4
-              )}) $$`;
+              )})</code></p>`;
             } else {
               // csc
               targetFunc = "sin";
               targetValRad = Math.asin(1 / k);
-              questionText = `Encuentra el ángulo agudo $\\theta$ si $\\csc(\\theta) = ${formatNumber(
+              questionText = `Encuentra el ángulo agudo ${angleSymbol} si <code>csc(${angleSymbol}) = ${formatNumber(
                 k
-              )}$. Da la respuesta en grados, redondeada a 1 decimal.`;
-              explanation = `Si $\\csc(\\theta) = ${formatNumber(
+              )}</code>. Da la respuesta en grados, redondeada a 1 decimal.`;
+              explanation = `<p>Si <code>csc(${angleSymbol}) = ${formatNumber(
                 k
-              )}$, entonces $\\sin(\\theta) = \\frac{1}{\\csc(\\theta)} = \\frac{1}{${formatNumber(
+              )}</code>, entonces <code>sin(${angleSymbol}) = 1 / csc(${angleSymbol}) = 1 / ${formatNumber(
                 k
-              )}} \\approx ${formatNumber(1 / k, 4)}$.
-                                         Para encontrar $\\theta$, usamos la función inversa del seno:
-                                         $$\\theta = \\arcsin\\left( \\frac{1}{${formatNumber(
-                                           k
-                                         )}} \\right) \\approx \\arcsin(${formatNumber(
+              )} ≈ ${formatNumber(1 / k, 4)}</code>.</p>
+                                         <p>Usamos la función inversa:</p>
+                                         <p><code>${angleSymbol} = arcsin(1 / ${formatNumber(
+                k
+              )})</code></p>
+                                         <p><code>${angleSymbol} ≈ arcsin(${formatNumber(
                 1 / k,
                 4
-              )}) $$`;
+              )})</code></p>`;
             }
             targetValDeg = radToDeg(targetValRad);
             correctAnswer = formatNumber(targetValDeg, 1);
-            explanation += `$$\\theta \\approx ${correctAnswer}^\\circ$$`;
+            explanation += `<p><code>${angleSymbol} ≈ ${correctAnswer}°</code></p>`;
             break;
         }
-
         return {
           questionText,
           correctAnswer,
@@ -1010,7 +909,7 @@
         };
       }
 
-      // 3. Complementary Angles
+      // 3. Complementary Angles (Updated for Unicode/HTML)
       function generateComplementaryProblem() {
         const type = getRandomInt(1, 3);
         let questionText = "";
@@ -1018,9 +917,10 @@
         let explanation = "";
         const angle1 = getRandomInt(10, 80);
         const angle2 = 90 - angle1;
+        const angleSymbol = "θ"; // Use theta for general explanations
 
         switch (type) {
-          case 1: // Simplify sin(a)/cos(90-a) or cos(a)/sin(90-a) etc.
+          case 1: // Simplify
             const funcs = [
               ["sin", "cos"],
               ["cos", "sin"],
@@ -1028,16 +928,14 @@
               ["cot", "tan"],
             ];
             const [f1, f2] = funcs[getRandomInt(0, 3)];
-            correctAnswer = "1"; // Always simplifies to 1
-            questionText = `Simplifica la expresión: $$\\frac{${f1}(${angle1}^\\circ)}{${f2}(${angle2}^\\circ)}$$`;
-            explanation = `Recordamos las identidades de ángulos complementarios:
-                                   $${f2}(x) = ${f1}(90^\\circ - x)$ o $${f1}(x) = ${f2}(90^\\circ - x)$.
-                                   En este caso, ${angle2}^\\circ = 90^\\circ - ${angle1}^\\circ$.
-                                   Así que, $${f2}(${angle2}^\\circ) = ${f1}(${angle1}^\\circ)$.
-                                   Sustituyendo en la expresión original:
-                                   $$\\frac{${f1}(${angle1}^\\circ)}{${f1}(${angle1}^\\circ)} = 1$$`;
+            correctAnswer = "1";
+            questionText = `Simplifica la expresión: <code>${f1}(${angle1}°) / ${f2}(${angle2}°)</code>`;
+            explanation = `<p>Recordamos las identidades de ángulos complementarios:<br><code>${f2}(x) = ${f1}(90° - x)</code> o <code>${f1}(x) = ${f2}(90° - x)</code>.</p>
+                                   <p>En este caso, <code>${angle2}° = 90° - ${angle1}°</code>.</p>
+                                   <p>Así que, <code>${f2}(${angle2}°) = ${f1}(${angle1}°)</code>.</p>
+                                   <p>Sustituyendo en la expresión original:<br><code>${f1}(${angle1}°) / ${f1}(${angle1}°) = 1</code></p>`;
             break;
-          case 2: // Solve equation like sin(A) = cos(B) where A and B are linear expressions
+          case 2: // Solve equation
             let c1, c2, k1, k2, x;
             let attempts = 0;
             do {
@@ -1045,10 +943,9 @@
               c2 = getRandomInt(1, 3);
               k1 = getRandomInt(-20, 20);
               k2 = getRandomInt(-20, 20);
-              if (c1 + c2 === 0) continue; // Avoid division by zero
+              if (c1 + c2 === 0) continue;
               x = (90 - k1 - k2) / (c1 + c2);
               attempts++;
-              // Check if x is reasonable and resulting angles are positive acute
               if (
                 x > 0 &&
                 x < 40 &&
@@ -1057,68 +954,66 @@
                 c2 * x + k2 > 0 &&
                 c2 * x + k2 < 90
               ) {
-                break; // Found a good set
+                break;
               }
-            } while (attempts < 20); // Limit attempts
-
-            // Fallback if no good solution found
+            } while (attempts < 20);
             if (attempts >= 20 || x <= 0 || x >= 40 || isNaN(x)) {
               c1 = 2;
-              k1 = 10; // 2x+10 = 50
+              k1 = 10;
               c2 = 1;
-              k2 = 20; // x+20 = 40
-              x = (90 - k1 - k2) / (c1 + c2); // x = 20
+              k2 = 20;
+              x = 20;
             }
-
             const expr1 = `${c1}x ${k1 >= 0 ? "+" : ""} ${k1}`;
             const expr2 = `${c2}x ${k2 >= 0 ? "+" : ""} ${k2}`;
-            questionText = `Encuentra el valor de $x$ si $\\sin(${expr1})^\\circ = \\cos(${expr2})^\\circ$.`;
-            correctAnswer = formatNumber(x, 1); // Allow one decimal place for x if needed
-            explanation = `Si $\\sin(A) = \\cos(B)$, y A y B son ángulos agudos, entonces $A + B = 90^\\circ$.
-                                     En este caso, $A = (${expr1})^\\circ$ y $B = (${expr2})^\\circ$.
-                                     $$((${expr1}) + (${expr2}))^\\circ = 90^\\circ$$
-                                     $$(${c1 + c2})x + (${k1 + k2}) = 90$$
-                                     $$${c1 + c2}x = 90 - (${k1 + k2})$$
-                                     $$${c1 + c2}x = ${90 - (k1 + k2)}$$
-                                     $$x = \\frac{${90 - (k1 + k2)}}{${
+            questionText = `Encuentra el valor de <em>x</em> si <code>sin(${expr1})° = cos(${expr2})°</code>.`;
+            correctAnswer = formatNumber(x, 1);
+            explanation = `<p>Si <code>sin(A) = cos(B)</code>, y A y B son ángulos agudos, entonces <code>A + B = 90°</code>.</p>
+                                     <p>Aquí, <code>A = (${expr1})°</code> y <code>B = (${expr2})°</code>.</p>
+                                     <p><code>(${expr1}) + (${expr2}) = 90</code></p>
+                                     <p><code>(${c1 + c2})x + (${
+              k1 + k2
+            }) = 90</code></p>
+                                     <p><code>${c1 + c2}x = 90 - (${
+              k1 + k2
+            })</code></p>
+                                     <p><code>${c1 + c2}x = ${
+              90 - (k1 + k2)
+            }</code></p>
+                                     <p><code>x = ${90 - (k1 + k2)} / ${
               c1 + c2
-            }} = ${correctAnswer}$$`;
+            } = ${correctAnswer}</code></p>`;
             break;
-
-          case 3: // Evaluate expression using complementary angles
+          case 3: // Evaluate expression
             const a = getRandomInt(15, 40);
             const b = 90 - a;
-            const c = getRandomInt(15, 40); // Different angle
-            // Example: tan(a)tan(90-a) or sin^2(a) + sin^2(90-a)
             const exprType = getRandomInt(1, 2);
             if (exprType === 1) {
-              // tan(a)tan(b) or cot(a)cot(b)
+              // tan * tan or cot * cot
               const func = ["tan", "cot"][getRandomInt(0, 1)];
               correctAnswer = "1";
-              questionText = `Evalúa: $${func}(${a}^\\circ) \\times ${func}(${b}^\\circ)$`;
-              explanation = `Recordamos que $\\tan(90^\\circ - x) = \\cot(x)$ y $\\cot(90^\\circ - x) = \\tan(x)$.
-                                        Si usamos ${func}, tenemos ${func}(${b}^\\circ) = ${func}(90^\\circ - ${a}^\\circ)$.
-                                        Si ${func} es 'tan', $\\tan(${b}^\\circ) = \\cot(${a}^\\circ) = \\frac{1}{\\tan(${a}^\\circ)}$.
-                                        Si ${func} es 'cot', $\\cot(${b}^\\circ) = \\tan(${a}^\\circ) = \\frac{1}{\\cot(${a}^\\circ)}$.
-                                        En ambos casos, la expresión se convierte en:
-                                        $$${func}(${a}^\\circ) \\times \\frac{1}{${func}(${a}^\\circ)} = 1$$`;
+              questionText = `Evalúa: <code>${func}(${a}°) × ${func}(${b}°)</code>`;
+              explanation = `<p>Recordamos que <code>tan(90° - x) = cot(x)</code> y <code>cot(90° - x) = tan(x)</code>.</p>
+                                        <p>Tenemos <code>${func}(${b}°) = ${func}(90° - ${a}°)</code>.</p>
+                                        <p>Si ${func} es 'tan', <code>tan(${b}°) = cot(${a}°) = 1 / tan(${a}°)</code>.</p>
+                                        <p>Si ${func} es 'cot', <code>cot(${b}°) = tan(${a}°) = 1 / cot(${a}°)</code>.</p>
+                                        <p>En ambos casos, la expresión es: <code>${func}(${a}°) × (1 / ${func}(${a}°)) = 1</code></p>`;
             } else {
-              // sin^2(a) + sin^2(b) or cos^2(a) + cos^2(b)
+              // sin² + sin² or cos² + cos²
               const func = ["sin", "cos"][getRandomInt(0, 1)];
               correctAnswer = "1";
-              questionText = `Evalúa: $${func}^2(${a}^\\circ) + ${func}^2(${b}^\\circ)$`;
-              explanation = `Recordamos que $\\sin(90^\\circ - x) = \\cos(x)$ y $\\cos(90^\\circ - x) = \\sin(x)$.
-                                        Tenemos $${func}(${b}^\\circ) = ${func}(90^\\circ - ${a}^\\circ)$.
-                                        Si ${func} es 'sin', $\\sin(${b}^\\circ) = \\cos(${a}^\\circ)$. La expresión es $\\sin^2(${a}^\\circ) + \\cos^2(${a}^\\circ)$.
-                                        Si ${func} es 'cos', $\\cos(${b}^\\circ) = \\sin(${a}^\\circ)$. La expresión es $\\cos^2(${a}^\\circ) + \\sin^2(${a}^\\circ)$.
-                                        Usando la identidad pitagórica fundamental $\\sin^2(\\theta) + \\cos^2(\\theta) = 1$, el resultado es 1.
-                                        $$${func}^2(${a}^\\circ) + ${
-                func === "sin" ? "\\cos" : "\\sin"
-              }^2(${a}^\\circ) = 1$$`;
+              questionText = `Evalúa: <code>${func}²(${a}°) + ${func}²(${b}°)</code>`;
+              explanation = `<p>Recordamos que <code>sin(90° - x) = cos(x)</code> y <code>cos(90° - x) = sin(x)</code>.</p>
+                                        <p>Tenemos <code>${func}(${b}°) = ${func}(90° - ${a}°)</code>.</p>
+                                        <p>Si ${func} es 'sin', <code>sin(${b}°) = cos(${a}°)</code>. La expresión es <code>sin²(${a}°) + cos²(${a}°)</code>.</p>
+                                        <p>Si ${func} es 'cos', <code>cos(${b}°) = sin(${a}°)</code>. La expresión es <code>cos²(${a}°) + sin²(${a}°)</code>.</p>
+                                        <p>Usando la identidad pitagórica <code>sin²(${angleSymbol}) + cos²(${angleSymbol}) = 1</code>, el resultado es 1.</p>
+                                        <p><code>${func}²(${a}°) + ${
+                func === "sin" ? "cos" : "sin"
+              }²(${a}°) = 1</code></p>`;
             }
             break;
         }
-
         return {
           questionText,
           correctAnswer,
@@ -1128,37 +1023,31 @@
         };
       }
 
-      // 4. Sine Law
+      // 4. Sine Law (Updated for Unicode/HTML)
       function generateSineLawProblem() {
-        // Cases: AAS, ASA (SSA is ambiguous, maybe avoid for simplicity or add later)
-        const type = getRandomInt(1, 3); // 1: Find side (AAS), 2: Find side (ASA), 3: Find angle (given 2 sides 1 opp angle)
+        const type = getRandomInt(1, 3);
         let questionText = "";
         let correctAnswer = null;
         let explanation = "";
-
-        // Triangle labels: Angles A, B, C; Opposite sides a, b, c
         let A, B, C, a, b, c;
         let knownA, knownB, knownC, known_a, known_b, known_c;
-        let findSide = null; // 'a', 'b', or 'c'
-        let findAngle = null; // 'A', 'B', or 'C'
+        let findSide = null;
+        let findAngle = null;
+        const triangleSymbol = "△"; // Or ∆
 
         switch (type) {
-          case 1: // Find side given AAS
+          case 1: // AAS -> Find side
             findSide = ["a", "b", "c"][getRandomInt(0, 2)];
             knownA = getRandomInt(30, 80);
-            knownB = getRandomInt(30, 140 - knownA); // Ensure A+B < 150 (leaves room for C)
+            knownB = getRandomInt(30, 140 - knownA);
             knownC = 180 - knownA - knownB;
-
-            // Assign one known side opposite one known angle
-            const knownSideIndex = getRandomInt(0, 2); // Which side is known
+            const knownSideIndex = getRandomInt(0, 2);
             const knownAngle = [knownA, knownB, knownC][knownSideIndex];
             const knownSideLabel = ["a", "b", "c"][knownSideIndex];
             const knownSideValue = getRandomFloat(10, 50);
-
             if (knownSideLabel === "a") known_a = knownSideValue;
             if (knownSideLabel === "b") known_b = knownSideValue;
             if (knownSideLabel === "c") known_c = knownSideValue;
-
             let targetAngle, targetAngleLabel;
             if (findSide === "a") {
               targetAngle = knownA;
@@ -1172,40 +1061,36 @@
               targetAngle = knownC;
               targetAngleLabel = "C";
             }
-
             let calcValue =
               (knownSideValue / Math.sin(degToRad(knownAngle))) *
               Math.sin(degToRad(targetAngle));
             correctAnswer = formatNumber(calcValue);
-
-            questionText = `En un triángulo $\\triangle ABC$, el ángulo $A = ${knownA}^\\circ$, el ángulo $B = ${knownB}^\\circ$, y el lado ${knownSideLabel} = ${knownSideValue}$ cm. Calcula la longitud del lado ${findSide}. (Redondea a 2 decimales)`;
-            explanation = `Primero, encontramos el tercer ángulo: $C = 180^\\circ - A - B = 180^\\circ - ${knownA}^\\circ - ${knownB}^\\circ = ${knownC}^\\circ$.
-                                   Usamos la Ley de Senos: $$\\frac{a}{\\sin A} = \\frac{b}{\\sin B} = \\frac{c}{\\sin C}$$
-                                   Queremos encontrar el lado ${findSide}$. Conocemos el lado ${knownSideLabel} = ${knownSideValue}$ y su ángulo opuesto ${
+            questionText = `En un triángulo ${triangleSymbol}ABC, el ángulo A = ${knownA}°, el ángulo B = ${knownB}°, y el lado <strong>${knownSideLabel}</strong> = ${knownSideValue} cm. Calcula la longitud del lado <strong>${findSide}</strong>. (Redondea a 2 decimales)`;
+            explanation = `<p><strong>1. Hallar tercer ángulo:</strong> C = 180° - A - B = 180° - ${knownA}° - ${knownB}° = ${knownC}°.</p>
+                                   <p><strong>2. Ley de Senos:</strong> <code>a / sin A = b / sin B = c / sin C</code></p>
+                                   <p><strong>3. Identificar Proporción:</strong> Queremos ${findSide}$. Conocemos ${knownSideLabel}=${knownSideValue}$ (opuesto a ${
               ["A", "B", "C"][knownSideIndex]
-            } = ${knownAngle}^\\circ$. El ángulo opuesto a ${findSide}$ es ${targetAngleLabel} = ${targetAngle}^\\circ$.
-                                   Establecemos la proporción: $$\\frac{${findSide}}{\\sin(${targetAngle}^\\circ)} = \\frac{${knownSideLabel}}{\\sin(${knownAngle}^\\circ)}$$
-                                   Despejando ${findSide}$: $${findSide} = \\frac{${knownSideLabel} \\times \\sin(${targetAngle}^\\circ)}{\\sin(${knownAngle}^\\circ)}$$
-                                   $${findSide} = \\frac{${knownSideValue} \\times \\sin(${targetAngle}^\\circ)}{\\sin(${knownAngle}^\\circ)} \\approx \\frac{${knownSideValue} \\times ${formatNumber(
+            }=${knownAngle}°) y el ángulo opuesto a ${findSide}$ es ${targetAngleLabel}=${targetAngle}°.
+                                   <br><code>${findSide} / sin(${targetAngle}°) = ${knownSideLabel} / sin(${knownAngle}°)</code></p>
+                                   <p><strong>4. Despejar ${findSide}:</strong> <code>${findSide} = (${knownSideLabel} × sin(${targetAngle}°)) / sin(${knownAngle}°)</code></p>
+                                   <p><strong>5. Calcular:</strong> <code>${findSide} = (${knownSideValue} × sin(${targetAngle}°)) / sin(${knownAngle}°)</code>
+                                   <br><code>${findSide} ≈ (${knownSideValue} × ${formatNumber(
               Math.sin(degToRad(targetAngle)),
               4
-            )}}{${formatNumber(
+            )}) / ${formatNumber(
               Math.sin(degToRad(knownAngle)),
               4
-            )}} \\approx ${correctAnswer} \\text{ cm}$$`;
+            )} ≈ ${correctAnswer}</code> cm</p>`;
             break;
-
-          case 2: // Find side given ASA
+          case 2: // ASA -> Find side
             findSide = ["a", "b", "c"][getRandomInt(0, 2)];
             knownA = getRandomInt(30, 80);
             knownC = getRandomInt(30, 140 - knownA);
             knownB = 180 - knownA - knownC;
             known_a = null;
             known_b = null;
-            known_c = null; // Reset known sides
-
-            // Included side is known (b if A and C known, a if B and C known, c if A and B known)
-            const includedSideIndex = getRandomInt(0, 2); // Which pair of angles determines the included side
+            known_c = null;
+            const includedSideIndex = getRandomInt(0, 2);
             let sideLabel, angle1, angle2, knownSideVal;
             if (includedSideIndex === 0) {
               angle1 = knownA;
@@ -1213,28 +1098,23 @@
               sideLabel = "b";
               known_b = getRandomFloat(10, 50);
               knownSideVal = known_b;
-            } // Given A, C, side b
-            else if (includedSideIndex === 1) {
+            } else if (includedSideIndex === 1) {
               angle1 = knownB;
               angle2 = knownC;
               sideLabel = "a";
               known_a = getRandomFloat(10, 50);
               knownSideVal = known_a;
-            } // Given B, C, side a
-            else {
+            } else {
               angle1 = knownA;
               angle2 = knownB;
               sideLabel = "c";
               known_c = getRandomFloat(10, 50);
               knownSideVal = known_c;
-            } // Given A, B, side c
-
-            const knownAngle1 = angle1; // Angle adjacent 1
-            const knownAngle2 = angle2; // Angle adjacent 2
-            // The third angle is OPPOSITE the known included side
+            }
+            const knownAngle1 = angle1;
+            const knownAngle2 = angle2;
             const knownSideOppositeAngle = 180 - knownAngle1 - knownAngle2;
-            const knownSideOppositeAngleLabel = sideLabel.toUpperCase(); // e.g., if sideLabel='b', angle is 'B'
-
+            const knownSideOppositeAngleLabel = sideLabel.toUpperCase();
             let targetAngleASA, targetAngleLabelASA;
             if (findSide === "a") {
               targetAngleASA = knownA;
@@ -1248,13 +1128,10 @@
               targetAngleASA = knownC;
               targetAngleLabelASA = "C";
             }
-
             calcValue =
               (knownSideVal / Math.sin(degToRad(knownSideOppositeAngle))) *
               Math.sin(degToRad(targetAngleASA));
             correctAnswer = formatNumber(calcValue);
-
-            // Construct question text carefully based on which angles/side were chosen
             let angleLabel1Text, angleLabel2Text;
             if (sideLabel === "a") {
               angleLabel1Text = "B";
@@ -1266,26 +1143,23 @@
               angleLabel1Text = "A";
               angleLabel2Text = "B";
             }
-
-            questionText = `En $\\triangle ABC$, el ángulo ${angleLabel1Text} = ${knownAngle1}^\\circ$, el ángulo ${angleLabel2Text} = ${knownAngle2}^\\circ$, y el lado incluido ${sideLabel} = ${knownSideVal}$ m. Calcula la longitud del lado ${findSide}. (Redondea a 2 decimales)`;
-            explanation = `Primero, encontramos el tercer ángulo (${knownSideOppositeAngleLabel}), que es opuesto al lado conocido ${sideLabel}: ${knownSideOppositeAngleLabel} = 180^\\circ - ${knownAngle1}^\\circ - ${knownAngle2}^\\circ = ${knownSideOppositeAngle}^\\circ$.
-                                    Usamos la Ley de Senos: $$\\frac{a}{\\sin A} = \\frac{b}{\\sin B} = \\frac{c}{\\sin C}$$
-                                    Queremos encontrar ${findSide}$. Conocemos el lado ${sideLabel} = ${knownSideVal}$ y su ángulo opuesto ${knownSideOppositeAngleLabel} = ${knownSideOppositeAngle}^\\circ$. El ángulo opuesto a ${findSide}$ es ${targetAngleLabelASA} = ${targetAngleASA}^\\circ$.
-                                    Establecemos la proporción: $$\\frac{${findSide}}{\\sin(${targetAngleASA}^\\circ)} = \\frac{${sideLabel}}{\\sin(${knownSideOppositeAngle}^\\circ)}$$
-                                    Despejando ${findSide}$: $${findSide} = \\frac{${sideLabel} \\times \\sin(${targetAngleASA}^\\circ)}{\\sin(${knownSideOppositeAngle}^\\circ)}$$
-                                    $${findSide} = \\frac{${knownSideVal} \\times \\sin(${targetAngleASA}^\\circ)}{\\sin(${knownSideOppositeAngle}^\\circ)} \\approx \\frac{${knownSideVal} \\times ${formatNumber(
+            questionText = `En ${triangleSymbol}ABC, el ángulo ${angleLabel1Text} = ${knownAngle1}°, el ángulo ${angleLabel2Text} = ${knownAngle2}°, y el lado incluido <strong>${sideLabel}</strong> = ${knownSideVal} m. Calcula la longitud del lado <strong>${findSide}</strong>. (Redondea a 2 decimales)`;
+            explanation = `<p><strong>1. Hallar tercer ángulo (opuesto a ${sideLabel}):</strong> ${knownSideOppositeAngleLabel} = 180° - ${knownAngle1}° - ${knownAngle2}° = ${knownSideOppositeAngle}°.</p>
+                                    <p><strong>2. Ley de Senos:</strong> <code>a / sin A = b / sin B = c / sin C</code></p>
+                                    <p><strong>3. Identificar Proporción:</strong> Queremos ${findSide}$. Conocemos ${sideLabel}=${knownSideVal}$ (opuesto a ${knownSideOppositeAngleLabel}=${knownSideOppositeAngle}°) y el ángulo opuesto a ${findSide}$ es ${targetAngleLabelASA}=${targetAngleASA}°.
+                                    <br><code>${findSide} / sin(${targetAngleASA}°) = ${sideLabel} / sin(${knownSideOppositeAngle}°)</code></p>
+                                    <p><strong>4. Despejar ${findSide}:</strong> <code>${findSide} = (${sideLabel} × sin(${targetAngleASA}°)) / sin(${knownSideOppositeAngle}°)</code></p>
+                                    <p><strong>5. Calcular:</strong> <code>${findSide} = (${knownSideVal} × sin(${targetAngleASA}°)) / sin(${knownSideOppositeAngle}°)</code>
+                                    <br><code>${findSide} ≈ (${knownSideVal} × ${formatNumber(
               Math.sin(degToRad(targetAngleASA)),
               4
-            )}}{${formatNumber(
+            )}) / ${formatNumber(
               Math.sin(degToRad(knownSideOppositeAngle)),
               4
-            )}} \\approx ${correctAnswer} \\text{ m}$$`;
+            )} ≈ ${correctAnswer}</code> m</p>`;
             break;
-
-          case 3: // Find angle given SSA (Ensure non-ambiguous case for simplicity: side opp known angle > other known side)
-            findAngle = ["A", "B", "C"][getRandomInt(0, 2)]; // Which angle to find
-
-            // Define known side opposite known angle, and another known side
+          case 3: // SSA -> Find Angle (non-ambiguous)
+            findAngle = ["A", "B", "C"][getRandomInt(0, 2)];
             let knownAngleSSA,
               knownSideOpp,
               otherKnownSide,
@@ -1293,26 +1167,20 @@
             let attempts = 0;
             do {
               knownAngleSSA = getRandomInt(30, 80);
-              knownSideOpp = getRandomFloat(15, 40); // Side opposite known angle
-              otherKnownSide = getRandomFloat(10, knownSideOpp - 1); // Other side (must be < knownSideOpp for non-ambiguous)
+              knownSideOpp = getRandomFloat(15, 40);
+              otherKnownSide = getRandomFloat(10, knownSideOpp - 1);
               attempts++;
-              // Check if sin(TargetAngle) = (otherKnownSide * sin(knownAngleSSA)) / knownSideOpp is <= 1
               const sinValCheck =
                 (otherKnownSide * Math.sin(degToRad(knownAngleSSA))) /
                 knownSideOpp;
-              if (sinValCheck > 0 && sinValCheck <= 1) break; // Check it's valid sin value > 0 and <= 1
+              if (sinValCheck > 0 && sinValCheck <= 1) break;
             } while (attempts < 20);
             if (attempts >= 20) {
-              // Fallback if random generation fails
               knownAngleSSA = 45;
               knownSideOpp = 20;
               otherKnownSide = 15;
-              console.warn(
-                "SSA generation failed, using fallback A=45, a=20, b=15"
-              );
+              console.warn("SSA generation failed, fallback used");
             }
-
-            // Assign labels (e.g., known A, a, b -> find B)
             const knownAngleLabelSSA = ["A", "B", "C"][getRandomInt(0, 2)];
             const knownSideOppLabel = knownAngleLabelSSA.toLowerCase();
             let otherKnownSideLabelIndex = getRandomInt(0, 2);
@@ -1320,45 +1188,44 @@
               otherKnownSideLabelIndex ===
               ["A", "B", "C"].indexOf(knownAngleLabelSSA)
             ) {
-              otherKnownSideLabelIndex = getRandomInt(0, 2); // Ensure different side
+              otherKnownSideLabelIndex = getRandomInt(0, 2);
             }
             otherKnownSideLabel = ["a", "b", "c"][otherKnownSideLabelIndex];
-
-            // The angle to find is opposite the otherKnownSide
             findAngle = otherKnownSideLabel.toUpperCase();
-
-            // Calculate the target angle
             const sinTargetAngle =
               (otherKnownSide * Math.sin(degToRad(knownAngleSSA))) /
               knownSideOpp;
-            // Clamp value to [0, 1] since we expect acute angle result here
             const clampedSinTargetAngle = Math.max(
               0,
               Math.min(1, sinTargetAngle)
             );
             const targetAngleRad = Math.asin(clampedSinTargetAngle);
             const targetAngleDeg = radToDeg(targetAngleRad);
-            correctAnswer = formatAngleDegMin(targetAngleDeg); // Format as Deg° Min'
-
-            questionText = `En $\\triangle ABC$, el ángulo ${knownAngleLabelSSA} = ${knownAngleSSA}^\\circ$, el lado ${knownSideOppLabel} = ${knownSideOpp}$ cm, y el lado ${otherKnownSideLabel} = ${otherKnownSide}$ cm. Calcula la medida del ángulo ${findAngle}. (Da la respuesta en grados y minutos)`;
-            explanation = `Usamos la Ley de Senos: $$\\frac{a}{\\sin A} = \\frac{b}{\\sin B} = \\frac{c}{\\sin C}$$
-                                    Conocemos el ángulo ${knownAngleLabelSSA} = ${knownAngleSSA}^\\circ$ y su lado opuesto ${knownSideOppLabel} = ${knownSideOpp}$.
-                                    También conocemos el lado ${otherKnownSideLabel} = ${otherKnownSide}$. Queremos encontrar el ángulo opuesto ${findAngle}$.
-                                    Establecemos la proporción: $$\\frac{${otherKnownSideLabel}}{\\sin(${findAngle})} = \\frac{${knownSideOppLabel}}{\\sin(${knownAngleLabelSSA})}$$
-                                    Despejando $\\sin(${findAngle})$: $$\\sin(${findAngle}) = \\frac{${otherKnownSideLabel} \\times \\sin(${knownAngleLabelSSA}^\\circ)}{\\text{${knownSideOppLabel}}}$$
-                                    $$\\sin(${findAngle}) = \\frac{${otherKnownSide} \\times \\sin(${knownAngleSSA}^\\circ)}{${knownSideOpp}} \\approx \\frac{${otherKnownSide} \\times ${formatNumber(
+            correctAnswer = formatAngleDegMin(targetAngleDeg);
+            questionText = `En ${triangleSymbol}ABC, el ángulo ${knownAngleLabelSSA} = ${knownAngleSSA}°, el lado <strong>${knownSideOppLabel}</strong> = ${knownSideOpp} cm, y el lado <strong>${otherKnownSideLabel}</strong> = ${otherKnownSide} cm. Calcula la medida del ángulo <strong>${findAngle}</strong>. (Da la respuesta en grados y minutos)`;
+            explanation = `<p><strong>1. Ley de Senos:</strong> <code>a / sin A = b / sin B = c / sin C</code></p>
+                                    <p><strong>2. Identificar Proporción:</strong> Conocemos ${knownAngleLabelSSA}=${knownAngleSSA}°$, su opuesto ${knownSideOppLabel}=${knownSideOpp}$, y el lado ${otherKnownSideLabel}=${otherKnownSide}$. Buscamos el ángulo ${findAngle}$ (opuesto a ${otherKnownSideLabel}$).
+                                    <br><code>${otherKnownSideLabel} / sin(${findAngle}) = ${knownSideOppLabel} / sin(${knownAngleLabelSSA})</code></p>
+                                    <p><strong>3. Despejar sin(${findAngle}):</strong> <code>sin(${findAngle}) = (${otherKnownSideLabel} × sin(${knownAngleLabelSSA}°)) / ${knownSideOppLabel}</code></p>
+                                    <p><strong>4. Calcular sin(${findAngle}):</strong> <code>sin(${findAngle}) = (${otherKnownSide} × sin(${knownAngleSSA}°)) / ${knownSideOpp}</code>
+                                    <br><code>sin(${findAngle}) ≈ (${otherKnownSide} × ${formatNumber(
               Math.sin(degToRad(knownAngleSSA)),
               4
-            )}}{${knownSideOpp}} \\approx ${formatNumber(sinTargetAngle, 4)}$$
-                                    Para encontrar ${findAngle}$, usamos la función inversa del seno:
-                                    $${findAngle} = \\arcsin(${formatNumber(
+            )}) / ${knownSideOpp} ≈ ${formatNumber(
               sinTargetAngle,
               4
-            )}) \\approx ${formatNumber(targetAngleDeg, 2)}^\\circ$$
-                                    Convirtiendo a grados y minutos: $${findAngle} \\approx ${correctAnswer}$$`;
+            )}</code></p>
+                                    <p><strong>5. Hallar ángulo:</strong> <code>${findAngle} = arcsin(${formatNumber(
+              sinTargetAngle,
+              4
+            )})</code>
+                                    <br><code>${findAngle} ≈ ${formatNumber(
+              targetAngleDeg,
+              2
+            )}°</code></p>
+                                    <p><strong>6. Formato Grados/Minutos:</strong> <code>${findAngle} ≈ ${correctAnswer}</code></p>`;
             break;
         }
-
         return {
           questionText,
           correctAnswer,
@@ -1368,26 +1235,22 @@
         };
       }
 
-      // 5. Cosine Law
+      // 5. Cosine Law (Updated for Unicode/HTML)
       function generateCosineLawProblem() {
-        // Cases: SAS (find opposite side), SSS (find an angle)
         const type = getRandomInt(1, 2);
         let questionText = "";
         let correctAnswer = null;
         let explanation = "";
-
-        // Triangle labels: Angles A, B, C; Opposite sides a, b, c
         let A, B, C, a, b, c;
+        const triangleSymbol = "△"; // Or ∆
 
         switch (type) {
-          case 1: // SAS -> Find opposite side
+          case 1: // SAS -> Find side
             const knownAngleLabel = ["A", "B", "C"][getRandomInt(0, 2)];
-            const knownAngle = getRandomInt(30, 150); // Can be obtuse
+            const knownAngle = getRandomInt(30, 150);
             const side1Value = getRandomFloat(10, 40);
             const side2Value = getRandomFloat(10, 40);
             let side1Label, side2Label;
-
-            // Determine side labels based on known angle
             if (knownAngleLabel === "A") {
               side1Label = "b";
               side2Label = "c";
@@ -1398,75 +1261,60 @@
               side1Label = "a";
               side2Label = "b";
             }
-
-            const targetSideLabel = knownAngleLabel.toLowerCase(); // Side opposite known angle
-
-            // Calculate target side using Cosine Law: a^2 = b^2 + c^2 - 2bc cos(A)
+            const targetSideLabel = knownAngleLabel.toLowerCase();
             let targetSideSq =
               side1Value ** 2 +
               side2Value ** 2 -
               2 * side1Value * side2Value * Math.cos(degToRad(knownAngle));
-
-            // Ensure result is valid (targetSideSq must be positive)
             if (targetSideSq <= 0) {
-              console.warn(
-                "Cosine Law resulted in non-positive side squared, regenerating..."
-              );
-              return generateCosineLawProblem(); // Simple recursion for regeneration
+              console.warn("Cosine Law non-positive side², regenerating...");
+              return generateCosineLawProblem();
             }
-
             const targetSideValue = Math.sqrt(targetSideSq);
             correctAnswer = formatNumber(targetSideValue);
-
-            questionText = `En $\\triangle ABC$, el lado ${side1Label} = ${side1Value}$ cm, el lado ${side2Label} = ${side2Value}$ cm, y el ángulo incluido ${knownAngleLabel} = ${knownAngle}^\\circ$. Calcula la longitud del lado ${targetSideLabel}. (Redondea a 2 decimales)`;
-            explanation = `Usamos la Ley de Cosenos para encontrar el lado opuesto a un ángulo conocido, dadas las longitudes de los otros dos lados.
-                                    La fórmula general es: $a^2 = b^2 + c^2 - 2bc \\cos A$.
-                                    En este caso, queremos encontrar el lado ${targetSideLabel}$. Los lados adyacentes son ${side1Label}=${side1Value}$ y ${side2Label}=${side2Value}$, y el ángulo incluido es ${knownAngleLabel}=${knownAngle}^\\circ$.
-                                    La fórmula adaptada es: $${targetSideLabel}^2 = ${side1Label}^2 + ${side2Label}^2 - 2(${side1Label})(${side2Label}) \\cos(${knownAngleLabel})$$
-                                    $${targetSideLabel}^2 = (${side1Value})^2 + (${side2Value})^2 - 2(${side1Value})(${side2Value}) \\cos(${knownAngle}^\\circ)$$
-                                    $${targetSideLabel}^2 = ${formatNumber(
+            questionText = `En ${triangleSymbol}ABC, el lado <strong>${side1Label}</strong> = ${side1Value} cm, el lado <strong>${side2Label}</strong> = ${side2Value} cm, y el ángulo incluido <strong>${knownAngleLabel}</strong> = ${knownAngle}°. Calcula la longitud del lado <strong>${targetSideLabel}</strong>. (Redondea a 2 decimales)`;
+            explanation = `<p><strong>1. Ley de Cosenos (para lado):</strong> <code>a² = b² + c² - 2bc cos A</code> (y formas análogas para b² y c²)</p>
+                                   <p><strong>2. Identificar Fórmula:</strong> Buscamos ${targetSideLabel}$. Conocemos los otros dos lados (${side1Label}=${side1Value}, ${side2Label}=${side2Value}) y el ángulo incluido ${knownAngleLabel}=${knownAngle}°.
+                                   <br>Fórmula: <code>${targetSideLabel}² = ${side1Label}² + ${side2Label}² - 2(${side1Label})(${side2Label}) cos(${knownAngleLabel})</code></p>
+                                   <p><strong>3. Sustituir:</strong> <code>${targetSideLabel}² = ${side1Value}² + ${side2Value}² - 2(${side1Value})(${side2Value}) cos(${knownAngle}°)</code></p>
+                                   <p><strong>4. Calcular ${targetSideLabel}²:</strong> <code>${targetSideLabel}² = ${formatNumber(
               side1Value ** 2
             )} + ${formatNumber(
               side2Value ** 2
-            )} - 2(${side1Value})(${side2Value}) (${formatNumber(
+            )} - 2(${side1Value})(${side2Value}) × (${formatNumber(
               Math.cos(degToRad(knownAngle)),
               4
-            )})$$
-                                    $${targetSideLabel}^2 \\approx ${formatNumber(
+            )})</code>
+                                   <br><code>${targetSideLabel}² ≈ ${formatNumber(
               side1Value ** 2 + side2Value ** 2
-            )} - ${formatNumber(2 * side1Value * side2Value)} (${formatNumber(
-              Math.cos(degToRad(knownAngle)),
+            )} - ${formatNumber(
+              2 * side1Value * side2Value * Math.cos(degToRad(knownAngle)),
               4
-            )})$$
-                                    $${targetSideLabel}^2 \\approx ${formatNumber(
+            )}</code>
+                                   <br><code>${targetSideLabel}² ≈ ${formatNumber(
               targetSideSq,
               4
-            )}$$
-                                    $${targetSideLabel} = \\sqrt{${formatNumber(
+            )}</code></p>
+                                   <p><strong>5. Hallar ${targetSideLabel}:</strong> <code>${targetSideLabel} = √(${formatNumber(
               targetSideSq,
               4
-            )}} \\approx ${correctAnswer} \\text{ cm}$$`;
+            )})</code>
+                                   <br><code>${targetSideLabel} ≈ ${correctAnswer}</code> cm</p>`;
             break;
-
-          case 2: // SSS -> Find an angle
+          case 2: // SSS -> Find angle
             const findAngleLabel = ["A", "B", "C"][getRandomInt(0, 2)];
             let side_a, side_b, side_c;
-
-            // Generate 3 sides that can form a triangle
             let attempts = 0;
             do {
               side_a = getRandomFloat(10, 30);
               side_b = getRandomFloat(10, 30);
-              // Ensure c is possible and avoid degenerate triangles
-              const min_c = Math.max(0.1, Math.abs(side_a - side_b) + 0.1); // Must be greater than difference
-              const max_c = side_a + side_b - 0.1; // Must be less than sum
+              const min_c = Math.max(0.1, Math.abs(side_a - side_b) + 0.1);
+              const max_c = side_a + side_b - 0.1;
               if (min_c >= max_c) {
-                // If a,b are too close/far apart
                 attempts++;
                 continue;
               }
               side_c = getRandomFloat(min_c, max_c);
-
               side_a = parseFloat(side_a.toFixed(1));
               side_b = parseFloat(side_b.toFixed(1));
               side_c = parseFloat(side_c.toFixed(1));
@@ -1476,145 +1324,110 @@
                 side_a + side_c <= side_b ||
                 side_b + side_c <= side_a) &&
               attempts < 30
-            ); // Increased attempts
-
+            );
             if (
               attempts >= 30 ||
               side_a + side_b <= side_c ||
               side_a + side_c <= side_b ||
               side_b + side_c <= side_a
             ) {
-              // Fallback if generation fails
               side_a = 10;
               side_b = 15;
               side_c = 20;
-              console.warn(
-                "SSS generation failed, using fallback sides 10, 15, 20."
-              );
+              console.warn("SSS generation failed, fallback used");
             }
-
-            // Calculate the angle using Cosine Law: cos A = (b^2 + c^2 - a^2) / 2bc
             let cosAngleValue;
+            let formulaStr = "";
+            let calculationStr = "";
             if (findAngleLabel === "A") {
               cosAngleValue =
                 (side_b ** 2 + side_c ** 2 - side_a ** 2) /
                 (2 * side_b * side_c);
-              explanation = `Usamos la Ley de Cosenos para encontrar un ángulo cuando se conocen los tres lados.
-                                         La fórmula para encontrar el ángulo A es: $$\\cos A = \\frac{b^2 + c^2 - a^2}{2bc}$$
-                                         Sustituyendo los valores dados ($a=${formatNumber(
-                                           side_a
-                                         )}, b=${formatNumber(
+              formulaStr = `cos A = (b² + c² - a²) / (2bc)`;
+              calculationStr = `cos A = (${formatNumber(
                 side_b
-              )}, c=${formatNumber(side_c)}$):
-                                         $$\\cos A = \\frac{(${formatNumber(
-                                           side_b
-                                         )})^2 + (${formatNumber(
-                side_c
-              )})^2 - (${formatNumber(side_a)})^2}{2(${formatNumber(
-                side_b
-              )})(${formatNumber(side_c)})}$$
-                                         $$\\cos A = \\frac{${formatNumber(
-                                           side_b ** 2
-                                         )} + ${formatNumber(
-                side_c ** 2
-              )} - ${formatNumber(side_a ** 2)}}{${formatNumber(
-                2 * side_b * side_c
-              )}}$$
-                                         $$\\cos A = \\frac{${formatNumber(
-                                           side_b ** 2 +
-                                             side_c ** 2 -
-                                             side_a ** 2
-                                         )}}{${formatNumber(
-                2 * side_b * side_c
-              )}} \\approx ${formatNumber(cosAngleValue, 4)}$$`;
+              )}² + ${formatNumber(side_c)}² - ${formatNumber(
+                side_a
+              )}²) / (2 × ${formatNumber(side_b)} × ${formatNumber(side_c)})`;
+              calculationStr += `<br>cos A = (${formatNumber(
+                side_b ** 2
+              )} + ${formatNumber(side_c ** 2)} - ${formatNumber(
+                side_a ** 2
+              )}) / (${formatNumber(2 * side_b * side_c)})`;
+              calculationStr += `<br>cos A = ${formatNumber(
+                side_b ** 2 + side_c ** 2 - side_a ** 2
+              )} / ${formatNumber(2 * side_b * side_c)} ≈ ${formatNumber(
+                cosAngleValue,
+                4
+              )}`;
             } else if (findAngleLabel === "B") {
               cosAngleValue =
                 (side_a ** 2 + side_c ** 2 - side_b ** 2) /
                 (2 * side_a * side_c);
-              explanation = `Usamos la Ley de Cosenos para encontrar un ángulo cuando se conocen los tres lados.
-                                         La fórmula para encontrar el ángulo B es: $$\\cos B = \\frac{a^2 + c^2 - b^2}{2ac}$$
-                                         Sustituyendo los valores dados ($a=${formatNumber(
-                                           side_a
-                                         )}, b=${formatNumber(
-                side_b
-              )}, c=${formatNumber(side_c)}$):
-                                         $$\\cos B = \\frac{(${formatNumber(
-                                           side_a
-                                         )})^2 + (${formatNumber(
-                side_c
-              )})^2 - (${formatNumber(side_b)})^2}{2(${formatNumber(
+              formulaStr = `cos B = (a² + c² - b²) / (2ac)`;
+              calculationStr = `cos B = (${formatNumber(
                 side_a
-              )})(${formatNumber(side_c)})}$$
-                                         $$\\cos B = \\frac{${formatNumber(
-                                           side_a ** 2
-                                         )} + ${formatNumber(
-                side_c ** 2
-              )} - ${formatNumber(side_b ** 2)}}{${formatNumber(
-                2 * side_a * side_c
-              )}}$$
-                                         $$\\cos B = \\frac{${formatNumber(
-                                           side_a ** 2 +
-                                             side_c ** 2 -
-                                             side_b ** 2
-                                         )}}{${formatNumber(
-                2 * side_a * side_c
-              )}} \\approx ${formatNumber(cosAngleValue, 4)}$$`;
+              )}² + ${formatNumber(side_c)}² - ${formatNumber(
+                side_b
+              )}²) / (2 × ${formatNumber(side_a)} × ${formatNumber(side_c)})`;
+              calculationStr += `<br>cos B = (${formatNumber(
+                side_a ** 2
+              )} + ${formatNumber(side_c ** 2)} - ${formatNumber(
+                side_b ** 2
+              )}) / (${formatNumber(2 * side_a * side_c)})`;
+              calculationStr += `<br>cos B = ${formatNumber(
+                side_a ** 2 + side_c ** 2 - side_b ** 2
+              )} / ${formatNumber(2 * side_a * side_c)} ≈ ${formatNumber(
+                cosAngleValue,
+                4
+              )}`;
             } else {
-              // findAngleLabel === 'C'
+              // 'C'
               cosAngleValue =
                 (side_a ** 2 + side_b ** 2 - side_c ** 2) /
                 (2 * side_a * side_b);
-              explanation = `Usamos la Ley de Cosenos para encontrar un ángulo cuando se conocen los tres lados.
-                                         La fórmula para encontrar el ángulo C es: $$\\cos C = \\frac{a^2 + b^2 - c^2}{2ab}$$
-                                         Sustituyendo los valores dados ($a=${formatNumber(
-                                           side_a
-                                         )}, b=${formatNumber(
-                side_b
-              )}, c=${formatNumber(side_c)}$):
-                                         $$\\cos C = \\frac{(${formatNumber(
-                                           side_a
-                                         )})^2 + (${formatNumber(
-                side_b
-              )})^2 - (${formatNumber(side_c)})^2}{2(${formatNumber(
+              formulaStr = `cos C = (a² + b² - c²) / (2ab)`;
+              calculationStr = `cos C = (${formatNumber(
                 side_a
-              )})(${formatNumber(side_b)})}$$
-                                         $$\\cos C = \\frac{${formatNumber(
-                                           side_a ** 2
-                                         )} + ${formatNumber(
-                side_b ** 2
-              )} - ${formatNumber(side_c ** 2)}}{${formatNumber(
-                2 * side_a * side_b
-              )}}$$
-                                         $$\\cos C = \\frac{${formatNumber(
-                                           side_a ** 2 +
-                                             side_b ** 2 -
-                                             side_c ** 2
-                                         )}}{${formatNumber(
-                2 * side_a * side_b
-              )}} \\approx ${formatNumber(cosAngleValue, 4)}$$`;
+              )}² + ${formatNumber(side_b)}² - ${formatNumber(
+                side_c
+              )}²) / (2 × ${formatNumber(side_a)} × ${formatNumber(side_b)})`;
+              calculationStr += `<br>cos C = (${formatNumber(
+                side_a ** 2
+              )} + ${formatNumber(side_b ** 2)} - ${formatNumber(
+                side_c ** 2
+              )}) / (${formatNumber(2 * side_a * side_b)})`;
+              calculationStr += `<br>cos C = ${formatNumber(
+                side_a ** 2 + side_b ** 2 - side_c ** 2
+              )} / ${formatNumber(2 * side_a * side_b)} ≈ ${formatNumber(
+                cosAngleValue,
+                4
+              )}`;
             }
-
-            // Ensure cosAngleValue is within [-1, 1] due to potential float inaccuracies
-            cosAngleValue = Math.max(-1, Math.min(1, cosAngleValue));
-
+            cosAngleValue = Math.max(-1, Math.min(1, cosAngleValue)); // Clamp value
             const targetAngleRad = Math.acos(cosAngleValue);
             const targetAngleDeg = radToDeg(targetAngleRad);
-            correctAnswer = formatAngleDegMin(targetAngleDeg); // Format as Deg° Min'
-
-            questionText = `En $\\triangle ABC$, los lados miden $a = ${formatNumber(
+            correctAnswer = formatAngleDegMin(targetAngleDeg);
+            questionText = `En ${triangleSymbol}ABC, los lados miden <strong>a</strong> = ${formatNumber(
               side_a
-            )}$ m, $b = ${formatNumber(side_b)}$ m, y $c = ${formatNumber(
+            )} m, <strong>b</strong> = ${formatNumber(
+              side_b
+            )} m, y <strong>c</strong> = ${formatNumber(
               side_c
-            )}$ m. Calcula la medida del ángulo ${findAngleLabel}$. (Da la respuesta en grados y minutos)`;
-            explanation += `Para encontrar el ángulo ${findAngleLabel}$, usamos la función inversa del coseno:
-                                     $${findAngleLabel} = \\arccos(${formatNumber(
+            )} m. Calcula la medida del ángulo <strong>${findAngleLabel}</strong>. (Da la respuesta en grados y minutos)`;
+            explanation = `<p><strong>1. Ley de Cosenos (para ángulo):</strong> <code>${formulaStr}</code></p>
+                                   <p><strong>2. Calcular cos ${findAngleLabel}:</strong><br><code>${calculationStr}</code></p>
+                                   <p><strong>3. Hallar ángulo ${findAngleLabel}:</strong> <code>${findAngleLabel} = arccos(${formatNumber(
               cosAngleValue,
               4
-            )}) \\approx ${formatNumber(targetAngleDeg, 2)}^\\circ$$
-                                     Convirtiendo a grados y minutos: $${findAngleLabel} \\approx ${correctAnswer}$$`;
+            )})</code>
+                                   <br><code>${findAngleLabel} ≈ ${formatNumber(
+              targetAngleDeg,
+              2
+            )}°</code></p>
+                                   <p><strong>4. Formato Grados/Minutos:</strong> <code>${findAngleLabel} ≈ ${correctAnswer}</code></p>`;
             break;
         }
-
         return {
           questionText,
           correctAnswer,
@@ -1625,39 +1438,31 @@
       }
 
       // --- Event Handlers ---
-
-      // Topic Selection
       topicSelector.addEventListener("click", (e) => {
         if (e.target.classList.contains("topic-button")) {
           topicButtons.forEach((btn) => btn.classList.remove("active"));
           e.target.classList.add("active");
           selectedTopic = e.target.dataset.topic;
-          previousProblem = null; // Reset history when topic changes
+          previousProblem = null;
           previousUserAnswer = "";
           previousProcedure = "";
-          generateProblem(); // Generate a problem for the new topic
+          generateProblem();
         }
       });
 
-      // Check Answer
       checkButton.addEventListener("click", () => {
-        if (!currentProblem || checkButton.disabled) return; // Extra check
-
+        if (!currentProblem || checkButton.disabled) return;
         const userAnswerStr = answerInput.value.trim();
         if (userAnswerStr === "") {
           feedbackDiv.textContent = "Por favor, introduce una respuesta.";
           feedbackDiv.className = "incorrect";
           return;
         }
-
         let isCorrect = false;
         const correctAnswerStr = String(currentProblem.correctAnswer).trim();
 
-        // Comparison logic based on answer format
         if (currentProblem.answerFormat === "angle_deg_min") {
-          // Allow flexible input like "45° 30'" or "45d 30m" or "45 30" etc.
           const parseDegMin = (str) => {
-            // Handle potential missing minutes part gracefully
             const parts = str
               .replace(/°|d|m|'/gi, " ")
               .replace(/\s+/g, " ")
@@ -1665,15 +1470,12 @@
               .split(" ");
             const deg = parseFloat(parts[0]) || 0;
             const min = parseFloat(parts[1]) || 0;
-            if (isNaN(deg) || isNaN(min)) return NaN; // Invalid format
+            if (isNaN(deg) || isNaN(min)) return NaN;
             return deg + min / 60;
           };
           const userDeg = parseDegMin(userAnswerStr);
           const correctDeg = parseDegMin(correctAnswerStr);
-
-          // Check if both parsed successfully
           if (!isNaN(userDeg) && !isNaN(correctDeg)) {
-            // Compare in decimal degrees using minute tolerance
             isCorrect =
               Math.abs(userDeg - correctDeg) < ANGLE_MINUTE_TOLERANCE_DEG;
           } else {
@@ -1688,7 +1490,6 @@
           currentProblem.answerFormat &&
           currentProblem.answerFormat.startsWith("angle_deg")
         ) {
-          // For angles just in degrees
           const userValue = parseFloat(userAnswerStr);
           const correctValue = parseFloat(correctAnswerStr);
           if (!isNaN(userValue) && !isNaN(correctValue)) {
@@ -1698,28 +1499,20 @@
           const userValue = parseFloat(userAnswerStr);
           const correctValue = parseFloat(correctAnswerStr);
           if (!isNaN(userValue) && !isNaN(correctValue)) {
-            // Check if numbers rounded to 1dp are the same (use 0.05 tolerance + base tolerance)
             isCorrect = Math.abs(userValue - correctValue) < 0.05 + TOLERANCE;
           }
         } else {
-          // Default: decimal (2dp) or integer comparison
           const userValue = parseFloat(userAnswerStr);
           const correctValue = parseFloat(correctAnswerStr);
-
           if (!isNaN(userValue) && !isNaN(correctValue)) {
-            // Primary check with standard tolerance
             isCorrect = Math.abs(userValue - correctValue) < TOLERANCE;
-
-            // Specific check for integer answers (e.g., from complementary angle simplifications)
             if (
               !isCorrect &&
               currentProblem.answerFormat === "integer" &&
               Math.abs(Math.round(userValue) - correctValue) < TOLERANCE
             ) {
               isCorrect = true;
-            }
-            // Check if intended answer was an integer, allow rounding within tolerance
-            else if (
+            } else if (
               !isCorrect &&
               Number.isInteger(correctValue) &&
               Math.abs(userValue - correctValue) < 0.001
@@ -1727,7 +1520,6 @@
               isCorrect = true;
             }
           }
-          // Allow direct string comparison for things like '1' if float check fails
           if (
             !isCorrect &&
             typeof correctAnswerStr === "string" &&
@@ -1741,14 +1533,11 @@
           feedbackDiv.innerHTML = "<strong>¡Correcto!</strong> 🎉";
           feedbackDiv.className = "correct";
         } else {
-          // Ensure correct answer is displayed nicely
           let displayCorrect = correctAnswerStr;
-          // Use the originally formatted string for angles with minutes
           if (
             currentProblem.answerFormat !== "angle_deg_min" &&
             !isNaN(parseFloat(correctAnswerStr))
           ) {
-            // Re-format potentially imprecise float correct answers for display
             let dp = 2;
             if (currentProblem.answerFormat === "decimal_1dp") dp = 1;
             else if (currentProblem.answerFormat === "integer") dp = 0;
@@ -1756,10 +1545,8 @@
               currentProblem.answerFormat &&
               currentProblem.answerFormat.startsWith("angle_deg")
             )
-              dp = 1; // Display degree angles with 1dp if not deg/min
-
+              dp = 1;
             displayCorrect = formatNumber(parseFloat(correctAnswerStr), dp);
-            // Add degree symbol if it's an angle format without minutes
             if (
               currentProblem.answerFormat &&
               currentProblem.answerFormat.startsWith("angle_deg") &&
@@ -1768,35 +1555,26 @@
               displayCorrect += "°";
             }
           } else if (currentProblem.answerFormat === "angle_deg_min") {
-            displayCorrect = currentProblem.correctAnswer; // Should already be formatted
+            displayCorrect = currentProblem.correctAnswer;
           }
-
           feedbackDiv.innerHTML = `<strong>Incorrecto.</strong> La respuesta correcta es ${displayCorrect}.<hr><p><strong>Explicación:</strong></p>${currentProblem.explanation}`;
           feedbackDiv.className = "incorrect";
-          renderMath(feedbackDiv); // Render math in the explanation
+          // NO renderMath call needed
         }
       });
 
-      // New Problem
       newProblemButton.addEventListener("click", () => {
         generateProblem();
       });
 
-      // Previous Problem
       prevProblemButton.addEventListener("click", () => {
         if (previousProblem) {
-          // Store current state before overwriting
           const tempProblem = currentProblem ? { ...currentProblem } : null;
           const tempAnswer = answerInput.value;
           const tempProcedure = procedureArea.value;
-
-          // Restore previous state
-          currentProblem = previousProblem; // Restore the actual previous problem object
+          currentProblem = previousProblem;
           answerInput.value = previousUserAnswer;
-          procedureArea.value = previousProcedure; // Restore procedure
-
-          // Set the 'previousProblem' state back to what *was* current (just before clicking prev)
-          // Only store if tempProblem was a valid problem state
+          procedureArea.value = previousProcedure;
           if (
             tempProblem &&
             tempProblem.questionText &&
@@ -1806,33 +1584,23 @@
             previousUserAnswer = tempAnswer;
             previousProcedure = tempProcedure;
           } else {
-            // If the 'current' state we are leaving wasn't a real problem,
-            // effectively clear the previous state again.
             previousProblem = null;
             previousUserAnswer = "";
             previousProcedure = "";
           }
-
           problemDisplay.innerHTML = currentProblem.questionText;
-          renderMath(problemDisplay);
-          feedbackDiv.innerHTML = ""; // Clear feedback
+          // NO renderMath call needed
+          feedbackDiv.innerHTML = "";
           feedbackDiv.className = "";
-
-          setButtonsState(true); // Update button states (Prev might become disabled now if previousProblem is null)
+          setButtonsState(true);
         }
       });
 
       // --- Initial Setup ---
-      // Add event listener to wait for KaTeX scripts to potentially load
       document.addEventListener("DOMContentLoaded", () => {
-        setButtonsState(false); // Disable check/new/prev initially
-        prevProblemButton.disabled = true; // Explicitly disable prev at start
+        setButtonsState(false);
+        prevProblemButton.disabled = true;
         problemDisplay.textContent = "Selecciona un tema para empezar.";
-
-        // Small delay to give CDN scripts a moment to load before potentially rendering initial state (if any)
-        // setTimeout(() => {
-        //     // You could potentially call renderMath(document.body) here if needed
-        // }, 100);
       });
     </script>
   </body>
